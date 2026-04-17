@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>邮件改写器</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --panel: #ffffff;
+    --border: #e3e6ea;
+    --text: #1f2328;
+    --muted: #6b7280;
+    --accent: #2b6cb0;
+    --accent-hover: #234e7d;
+    --ok: #16a34a;
+    --err: #b91c1c;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  header {
+    padding: 18px 28px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header h1 { font-size: 18px; margin: 0; font-weight: 600; }
+  header nav button {
+    background: none;
+    border: none;
+    font-size: 14px;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 6px;
+  }
+  header nav button.active { color: var(--text); background: var(--bg); }
+  header nav button:hover { color: var(--text); }
+
+  main { padding: 24px 28px; max-width: 1200px; margin: 0 auto; }
+  .view { display: none; }
+  .view.active { display: block; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+  }
+  .card-label {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  textarea {
+    width: 100%;
+    min-height: 340px;
+    resize: vertical;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 14px;
+    line-height: 1.55;
+    background: #fafbfc;
+    color: var(--text);
+  }
+  textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+  .actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 16px;
+  }
+  button.primary {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  button.primary:hover { background: var(--accent-hover); }
+  button.primary:disabled { background: #9ca3af; cursor: not-allowed; }
+  button.ghost {
+    background: none;
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  button.ghost:hover { background: var(--bg); }
+
+  .status {
+    font-size: 13px;
+    color: var(--muted);
+    min-height: 18px;
+  }
+  .status.ok { color: var(--ok); }
+  .status.err { color: var(--err); }
+
+  .hint {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 12px;
+    line-height: 1.6;
+  }
+
+  .profile-wrap { max-width: 800px; margin: 0 auto; }
+  .profile-wrap textarea { min-height: 420px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>邮件改写器</h1>
+  <nav>
+    <button id="tab-rewrite" class="active" type="button">改邮件</button>
+    <button id="tab-profile" type="button">我的档案</button>
+  </nav>
+</header>
+
+<main>
+  <section id="view-rewrite" class="view active">
+    <div class="grid">
+      <div class="card">
+        <div class="card-label"><span>草稿（粘贴进来）</span></div>
+        <textarea id="draft" placeholder="把你写的英文邮件草稿粘贴到这里..."></textarea>
+      </div>
+      <div class="card">
+        <div class="card-label">
+          <span>改写结果</span>
+          <button id="copy" class="ghost" type="button" disabled>复制</button>
+        </div>
+        <textarea id="result" placeholder="改写后的版本会显示在这里"></textarea>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="go" class="primary" type="button">一键改写</button>
+      <span id="status" class="status"></span>
+    </div>
+
+    <p class="hint">
+      提示：改写会用到你在「我的档案」里填的信息（身份、常用收件人、签名、语气偏好）。越具体效果越好。
+    </p>
+  </section>
+
+  <section id="view-profile" class="view">
+    <div class="profile-wrap">
+      <div class="card">
+        <div class="card-label"><span>个人档案（profile.md）</span></div>
+        <textarea id="profile" placeholder="正在加载..."></textarea>
+        <div class="actions">
+          <button id="save-profile" class="primary" type="button">保存</button>
+          <span id="profile-status" class="status"></span>
+        </div>
+        <p class="hint">
+          Markdown 格式，随便写。填得越详细，Claude 改出来越贴合你的风格。例如：你的姓名、职位、常发邮件给谁、喜欢什么签名、语气偏好（比如「friendly but direct」「avoid exclamation marks」）、要保留的专有名词等。
+        </p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+// -------- tabs --------
+const tabs = {
+  rewrite: { btn: $("tab-rewrite"), view: $("view-rewrite") },
+  profile: { btn: $("tab-profile"), view: $("view-profile") },
+};
+function showTab(name) {
+  for (const [k, t] of Object.entries(tabs)) {
+    const active = k === name;
+    t.btn.classList.toggle("active", active);
+    t.view.classList.toggle("active", active);
+  }
+  if (name === "profile") loadProfile();
+}
+tabs.rewrite.btn.addEventListener("click", () => showTab("rewrite"));
+tabs.profile.btn.addEventListener("click", () => showTab("profile"));
+
+// -------- rewrite --------
+const draftEl = $("draft");
+const resultEl = $("result");
+const goBtn = $("go");
+const copyBtn = $("copy");
+const statusEl = $("status");
+
+function setStatus(msg, kind) {
+  statusEl.textContent = msg;
+  statusEl.className = "status" + (kind ? " " + kind : "");
+}
+
+goBtn.addEventListener("click", async () => {
+  const draft = draftEl.value.trim();
+  if (!draft) {
+    setStatus("草稿是空的，先粘贴内容。", "err");
+    return;
+  }
+  goBtn.disabled = true;
+  copyBtn.disabled = true;
+  resultEl.value = "";
+  setStatus("正在改写...");
+  try {
+    const r = await fetch("/api/rewrite", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ draft }),
+    });
+    const data = await r.json();
+    if (!r.ok) {
+      setStatus(data.error || "出错了", "err");
+      return;
+    }
+    resultEl.value = data.revised;
+    copyBtn.disabled = false;
+    const u = data.usage || {};
+    setStatus(
+      `完成。input=${u.input_tokens} output=${u.output_tokens} ` +
+      `cache_read=${u.cache_read_input_tokens} cache_write=${u.cache_creation_input_tokens}`,
+      "ok"
+    );
+  } catch (e) {
+    setStatus("网络错误：" + e.message, "err");
+  } finally {
+    goBtn.disabled = false;
+  }
+});
+
+copyBtn.addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(resultEl.value);
+    setStatus("已复制到剪贴板。", "ok");
+  } catch (e) {
+    resultEl.select();
+    document.execCommand("copy");
+    setStatus("已复制（用降级方式）。", "ok");
+  }
+});
+
+// -------- profile --------
+const profileEl = $("profile");
+const saveProfileBtn = $("save-profile");
+const profileStatusEl = $("profile-status");
+let profileLoaded = false;
+
+function setProfileStatus(msg, kind) {
+  profileStatusEl.textContent = msg;
+  profileStatusEl.className = "status" + (kind ? " " + kind : "");
+}
+
+async function loadProfile() {
+  if (profileLoaded) return;
+  try {
+    const r = await fetch("/api/profile");
+    const data = await r.json();
+    profileEl.value = data.content || "";
+    profileLoaded = true;
+  } catch (e) {
+    setProfileStatus("加载失败：" + e.message, "err");
+  }
+}
+
+saveProfileBtn.addEventListener("click", async () => {
+  saveProfileBtn.disabled = true;
+  setProfileStatus("保存中...");
+  try {
+    const r = await fetch("/api/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: profileEl.value }),
+    });
+    const data = await r.json();
+    if (!r.ok) {
+      setProfileStatus(data.error || "保存失败", "err");
+    } else {
+      setProfileStatus("已保存。", "ok");
+    }
+  } catch (e) {
+    setProfileStatus("网络错误：" + e.message, "err");
+  } finally {
+    saveProfileBtn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
