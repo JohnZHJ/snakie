@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "snakie-fix-email"
+version = "0.1.0"
+description = "Clipboard-driven email rewriter: grammar, concise, polite."
+requires-python = ">=3.10"
+dependencies = [
+    "anthropic>=0.40",
+    "pyperclip>=1.9",
+]
+
+[project.scripts]
+fix-email = "fix_email:main"
+
+[tool.setuptools]
+py-modules = ["fix_email"]
