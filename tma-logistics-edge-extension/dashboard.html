@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TMA Logistics Hub</title>
+    <link rel="stylesheet" href="dashboard.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand"><span>T</span><strong>TMA</strong> LOGISTICS <small id="versionLabel" class="version-label"></small></div>
+      <nav aria-label="Dashboard navigation">
+        <a class="active" href="#dashboard">Dashboard</a>
+        <a href="#shipments">Shipments</a>
+        <a href="#status">Status</a>
+      </nav>
+      <div class="top-actions">
+        <button id="openListButton" class="quiet-button">Open SharePoint</button>
+        <button id="refreshButton" class="icon-button" title="Refresh data" aria-label="Refresh data">↻</button>
+        <div class="avatar">JZ</div>
+      </div>
+    </header>
+
+    <main id="dashboard" class="dashboard">
+      <section class="welcome-row">
+        <div>
+          <p class="eyebrow" id="todayLabel">LIVE SHAREPOINT VIEW</p>
+          <h1>Good day, John</h1>
+          <p class="subtitle">Your private logistics control tower</p>
+        </div>
+        <div class="sync-actions">
+          <span id="syncLabel" class="sync-label"><i></i> Connecting to SharePoint</span>
+          <button id="newRequestButton" class="primary-button">＋ New Freight Request</button>
+        </div>
+      </section>
+
+      <section class="kpi-grid" aria-label="Logistics metrics">
+        <button type="button" class="kpi-card" data-quick-view="active"><div class="kpi-icon">▰</div><div><p>Active Shipments</p><strong id="activeMetric">—</strong><span>Click to show current movements</span></div></button>
+        <button type="button" class="kpi-card" data-quick-view="awaiting"><div class="kpi-icon">✓</div><div><p>Awaiting Approval</p><strong id="approvalMetric">—</strong><span>Click to show Quote Complete</span></div></button>
+        <button type="button" class="kpi-card risk" data-quick-view="urgent"><div class="kpi-icon">!</div><div><p>Risk Alerts</p><strong id="riskMetric">—</strong><span>Click to show high-priority signals</span></div></button>
+        <button type="button" class="kpi-card" data-quick-view="arriving-week"><div class="kpi-icon">◫</div><div><p>Arriving This Week</p><strong id="arrivalMetric">—</strong><span>Click to show ETA within 7 days</span></div></button>
+      </section>
+
+      <section id="dataAssurance" class="assurance-bar checking" aria-live="polite">
+        <div class="assurance-summary"><span id="assuranceIcon">…</span><div><strong id="assuranceTitle">Checking source integrity</strong><small id="assuranceDetail">Validating schema, unique IDs and schedule dates before calculating risk.</small></div></div>
+        <div class="assurance-facts">
+          <span><b id="uniqueRecordMetric">—</b> unique records</span>
+          <span><b id="blockedRecordMetric">—</b> blocked rows</span>
+          <span><b id="dataIssueMetric">—</b> date checks</span>
+          <button id="reviewDataChecksButton" type="button">Review data checks</button>
+        </div>
+      </section>
+
+      <section class="workspace-grid">
+        <article id="shipments" class="panel shipments-panel">
+          <div class="panel-heading">
+            <div><p class="section-kicker">LIVE LIST DATA</p><h2 id="shipmentsTitle">Active Shipments</h2></div>
+            <div class="panel-heading-actions"><button id="copyBriefButton" class="text-button">Copy Risk Handoff</button><button id="exportButton" class="text-button">Export visible CSV</button></div>
+          </div>
+
+          <div class="quick-views-bar">
+            <div class="quick-views-heading"><span>WORK VIEWS</span><button id="clearFiltersButton" type="button">Reset filters</button></div>
+            <div id="quickViews" class="quick-views" aria-label="Shipment work views"></div>
+          </div>
+
+          <div class="toolbar">
+            <label class="search-box"><span>⌕</span><input id="searchInput" type="search" placeholder="Search ID, PO, container, route, carrier or shipper" /></label>
+            <select id="statusFilter" aria-label="Filter by status"><option value="all" selected>All statuses</option><option value="active">Active shipments</option></select>
+            <select id="directionFilter" aria-label="Filter by direction"><option value="all">Inbound + outbound</option><option value="inbound">Inbound</option><option value="outbound">Outbound</option></select>
+            <select id="urgencyFilter" aria-label="Filter by urgency"><option value="all">All urgency</option><option value="urgent">Urgent only</option><option value="critical">Critical</option><option value="high">High</option><option value="watch">Watch</option></select>
+            <select id="ownerFilter" aria-label="Filter by IMPEX owner"><option value="all">All owners</option></select>
+            <select id="sortFilter" aria-label="Sort shipments"><option value="priority">Priority first</option><option value="owner">Owner workload</option><option value="eta">ETA soonest</option><option value="newest">Newest ID</option><option value="status">Status</option></select>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>ID / PO</th><th>Route</th><th>Origin Shipper</th><th>Status / Risk</th><th>Mode</th><th>Container</th><th>Owner / Agent</th><th>ETA</th><th class="sticky-edit-cell">Edit</th></tr></thead>
+              <tbody id="shipmentRows"><tr><td class="loading-cell" colspan="9">Loading your SharePoint List…</td></tr></tbody>
+            </table>
+          </div>
+          <div class="table-footer"><span id="resultCount">0 shipments</span><span>Edits require confirmation before SharePoint update</span></div>
+        </article>
+
+        <aside id="status" class="panel side-panel">
+          <div class="panel-heading"><div><p class="section-kicker">ACTION CENTRE</p><h2>Risk action queue</h2></div></div>
+          <div id="urgentQueue" class="urgent-queue"><p class="muted">Waiting for SharePoint data…</p></div>
+          <section class="owner-risk-section" aria-labelledby="ownerRiskTitle"><div class="subsection-heading"><h3 id="ownerRiskTitle">Risk by owner</h3><span>Click to filter</span></div><div id="ownerRiskBreakdown" class="owner-risk-breakdown"><p class="muted">Waiting for SharePoint data…</p></div></section>
+          <details class="status-details"><summary>Status breakdown</summary><div id="statusBreakdown" class="status-breakdown"><p class="muted">Waiting for SharePoint data…</p></div></details>
+          <div class="security-note"><span>✓</span><div><strong>Direct SharePoint connection</strong><p>Confirmed edits are sent directly to your TMA List through the signed-in SharePoint tab.</p></div></div>
+          <details class="mapping-details"><summary>Detected SharePoint fields</summary><pre id="mappingOutput">Waiting for data…</pre></details>
+        </aside>
+      </section>
+    </main>
+
+    <div id="setupOverlay" class="setup-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="setupTitle">
+      <div class="setup-card">
+        <span class="setup-mark">T</span>
+        <p class="eyebrow">ONE-TIME CONNECTION</p>
+        <h2 id="setupTitle">Open your SharePoint List</h2>
+        <p id="setupMessage">Keep the TMA Freight Request Form open in another Edge tab, then refresh this dashboard.</p>
+        <div class="setup-buttons"><button id="setupOpenButton" class="primary-button">Open TMA Freight List</button><button id="setupRetryButton" class="quiet-button">Try again</button></div>
+        <small>No password, cookie, or Microsoft token is stored by the extension.</small>
+      </div>
+    </div>
+
+    <div id="editorBackdrop" class="editor-backdrop hidden" role="presentation">
+      <aside class="editor-drawer" role="dialog" aria-modal="true" aria-labelledby="editorTitle">
+        <div class="editor-header">
+          <div><p class="section-kicker">SHIPMENT WORKSPACE</p><h2 id="editorTitle">Shipment details</h2><p id="editorSummary"></p></div>
+          <button id="editorCloseButton" class="close-button" aria-label="Close editor">×</button>
+        </div>
+
+        <div class="editor-quick-actions"><button id="copyFollowUpButton" type="button" class="summary-button">Copy follow-up message</button><button id="copySummaryButton" type="button" class="quiet-button">Copy shipment summary</button><button id="openRecordButton" type="button" class="quiet-button">Open in SharePoint</button></div>
+        <section id="shipmentOverview" class="shipment-overview" aria-label="Shipment overview"></section>
+
+        <form id="editForm" class="edit-form">
+          <label><span>Status</span><select id="editStatus" data-field-key="status"></select></label>
+          <div class="form-row"><label><span>Cargo Ready Date</span><input id="editCargoReady" data-field-key="cargoReady" type="date" /></label><label><span>Vessel/Flight ETD</span><input id="editEtd" data-field-key="etd" type="date" /></label></div>
+          <div class="form-row"><label><span>Revised ETD</span><input id="editRevisedEtd" data-field-key="revisedEtd" type="date" /></label><label><span>Vessel/Flight ETA</span><input id="editEta" data-field-key="eta" type="date" /></label></div>
+          <label><span>Origin Shipper Name</span><input id="editShipper" data-field-key="shipper" type="text" /></label>
+          <div class="form-row"><label><span>Port of Origin</span><input id="editOrigin" data-field-key="origin" type="text" /></label><label><span>Port of Discharge</span><input id="editDischarge" data-field-key="discharge" type="text" /></label></div>
+          <label><span>Container Number</span><textarea id="editContainer" data-field-key="container" rows="2"></textarea></label>
+          <label><span>Vessel / Flight Name</span><input id="editVessel" data-field-key="vessel" type="text" /><small id="editVesselReason" class="field-reason hidden"></small></label>
+          <label><span>Booking Number SO#</span><textarea id="editBooking" data-field-key="booking" rows="2"></textarea></label>
+          <label class="checkbox-label"><input id="editTelexHbl" data-field-key="telexHbl" type="checkbox" /><span>Telex-released HBL received</span></label>
+          <p id="editHelp" class="edit-help">Only fields detected as writable in SharePoint can be changed here.</p>
+          <div id="editValidation" class="save-error hidden" role="alert"></div>
+          <div class="editor-actions"><button id="editorCancelButton" type="button" class="quiet-button">Cancel</button><button type="submit" class="primary-button">Review changes</button></div>
+        </form>
+
+        <section id="confirmPanel" class="confirm-panel hidden" aria-label="Confirm SharePoint changes">
+          <p class="section-kicker">FINAL CHECK</p>
+          <h3>Confirm SharePoint update</h3>
+          <p>Review every change below. SharePoint will update only after you select Confirm update.</p>
+          <div id="changeList" class="change-list"></div>
+          <div id="saveError" class="save-error hidden"></div>
+          <div class="editor-actions"><button id="backToEditButton" type="button" class="quiet-button">Back</button><button id="confirmUpdateButton" type="button" class="danger-safe-button">Confirm update</button></div>
+        </section>
+      </aside>
+    </div>
+
+    <div id="toast" class="toast hidden" role="status"></div>
+    <script src="shared.js"></script>
+    <script src="dashboard.js"></script>
+  </body>
+</html>
