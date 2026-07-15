@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "TMA Logistics Hub",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "A guarded logistics risk control tower and verified editor for the TMA Freight Request SharePoint List.",
   "permissions": ["tabs", "scripting"],
   "host_permissions": ["https://tmaaust-my.sharepoint.com/*"],

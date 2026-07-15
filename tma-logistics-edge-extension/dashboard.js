@@ -466,30 +466,61 @@ function updateFreshnessLabel() {
   elements.syncLabel.innerHTML = `<i></i> ${stale ? "Stale" : "Live"} · ${state.rows.length} unique · ${ageMinutes ? `${ageMinutes}m ago` : syncTime} · auto 5m`;
 }
 
+function withTimeout(promise, ms, message) {
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new Error(message)), ms);
+    promise.then(
+      (value) => { window.clearTimeout(timer); resolve(value); },
+      (error) => { window.clearTimeout(timer); reject(error); }
+    );
+  });
+}
+
+function friendlyLoadError(error) {
+  const raw = String(error?.message || error || "Unknown error");
+  let runtimeAlive = true;
+  try {
+    runtimeAlive = Boolean(chrome.runtime?.id);
+  } catch {
+    runtimeAlive = false;
+  }
+  if (!runtimeAlive || raw.includes("Extension context invalidated")) {
+    return "The extension was updated while this tab was open. Close this dashboard tab, then open the dashboard again from the TMA toolbar icon.";
+  }
+  if (raw.includes("Receiving end does not exist") || raw.includes("message port closed")) {
+    return "The SharePoint List tab did not answer. Refresh that tab once, then select Refresh here.";
+  }
+  return raw;
+}
+
 async function loadDashboard() {
   const requestId = ++state.loadRequestId;
   state.loading = true;
   elements.syncLabel.className = "sync-label loading";
   elements.syncLabel.innerHTML = "<i></i> Reading SharePoint List";
 
-  const sourceTab = await findSharePointTab();
-  if (!sourceTab?.id) {
-    if (requestId !== state.loadRequestId) return;
-    state.loading = false;
-    if (state.hasLoaded) {
-      elements.syncLabel.className = "sync-label offline";
-      elements.syncLabel.innerHTML = "<i></i> SharePoint tab closed · showing last verified snapshot";
-      showToast("SharePoint tab is closed; the dashboard kept the last verified snapshot", 6000, "warning");
-    } else {
-      showSetup("Open the TMA Freight Request Form in another Edge tab, sign in, then select Try again.");
-    }
-    return;
-  }
-
   try {
+    const sourceTab = await findSharePointTab();
+    if (!sourceTab?.id) {
+      if (requestId !== state.loadRequestId) return;
+      state.loading = false;
+      if (state.hasLoaded) {
+        elements.syncLabel.className = "sync-label offline";
+        elements.syncLabel.innerHTML = "<i></i> SharePoint tab closed · showing last verified snapshot";
+        showToast("SharePoint tab is closed; the dashboard kept the last verified snapshot", 6000, "warning");
+      } else {
+        showSetup("Open the TMA Freight Request Form in another Edge tab, sign in, then select Try again.");
+      }
+      return;
+    }
+
     state.sourceTabId = sourceTab.id;
-    const response = await sendToSharePoint({ type: "TMA_GET_LIST_DATA" });
-    if (!response?.ok) throw new Error(response?.error || "The SharePoint tab did not return data.");
+    const response = await withTimeout(
+      sendToSharePoint({ type: "TMA_GET_LIST_DATA" }),
+      120000,
+      "SharePoint did not respond within two minutes. Refresh the SharePoint List tab once, then select Refresh here."
+    );
+    if (!response?.ok) throw new Error(response?.error || "The SharePoint tab did not return data. Refresh that tab once, then select Refresh here.");
     if (requestId !== state.loadRequestId) return;
 
     const transformed = TmaData.transformItems(response.data.items, response.data.fields);
@@ -517,12 +548,13 @@ async function loadDashboard() {
   } catch (error) {
     if (requestId !== state.loadRequestId) return;
     state.loading = false;
+    const message = friendlyLoadError(error);
     if (state.hasLoaded) {
       elements.syncLabel.className = "sync-label offline";
       elements.syncLabel.innerHTML = "<i></i> Refresh failed · showing last verified snapshot";
-      showToast(`Refresh failed: ${error.message}`, 7000, "warning");
+      showToast(`Refresh failed: ${message}`, 8000, "warning");
     } else {
-      showSetup(`Connection failed: ${error.message}. Refresh the SharePoint List tab once, then try again.`);
+      showSetup(`Connection failed: ${message}`);
     }
   }
 }

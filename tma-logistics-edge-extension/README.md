@@ -2,6 +2,12 @@
 
 Manager-focused logistics risk control tower and verified editor for the **TMA Freight Request Form** SharePoint List.
 
+## What is new in 1.6.1
+
+- Fixes the dashboard freezing on "Reading SharePoint List" after the extension is updated or reloaded: the List-tab bridge now detects that it belongs to an unloaded extension copy and hands over to the fresh one, so the SharePoint tab no longer needs a manual refresh after every upgrade.
+- Adds a two-minute timeout to the List read so the dashboard always shows an actionable message instead of loading forever.
+- Explains connection failures in plain language: a dashboard tab left over from before an upgrade now says to close it and reopen from the toolbar icon, and an unresponsive List tab now says to refresh that tab.
+
 ## What is new in 1.6.0
 
 - Wakes the SharePoint List tab automatically when Edge has put it to sleep, so scheduled refreshes and confirmed edits no longer fail after the tab has been idle (Edge "sleeping tabs").
@@ -74,7 +80,7 @@ The Risk Alerts KPI counts Critical and High records. A shipment can carry more 
 
 ## Install
 
-1. Extract `TMA-Logistics-Hub-Edge-v1.6.0.zip` into a permanent folder, for example `Documents\TMA-Logistics-Hub`.
+1. Extract `TMA-Logistics-Hub-Edge-v1.6.1.zip` into a permanent folder, for example `Documents\TMA-Logistics-Hub`.
 2. In Microsoft Edge, open `edge://extensions`.
 3. Turn on **Developer mode**.
 4. Select **Load unpacked**.

@@ -221,8 +221,11 @@ assert.match(dashboardSource, /visibilitychange/, "the dashboard must refresh st
 assert.match(dashboardSource, /discarded/, "the dashboard must wake a sleeping SharePoint tab before reading or saving");
 assert.match(dashboardSource, /clearTimeout\(searchTimer\)/, "search input must be debounced");
 
+assert.match(dashboardSource, /friendlyLoadError/, "load errors must be translated into actionable guidance");
+assert.match(dashboardSource, /withTimeout\(\s*sendToSharePoint/, "the List read must have a timeout so the dashboard can never hang on Reading SharePoint List");
+
 const manifest = JSON.parse(fs.readFileSync(new URL("./manifest.json", import.meta.url), "utf8"));
-assert.equal(manifest.version, "1.6.0");
+assert.equal(manifest.version, "1.6.1");
 assert.ok(!manifest.permissions.includes("storage"));
 for (const size of [16, 32, 48, 128]) {
   const iconPath = manifest.icons?.[String(size)];
@@ -236,6 +239,7 @@ const contentSource = fs.readFileSync(new URL("./content.js", import.meta.url), 
 assert.match(contentSource, /verificationMismatches/);
 assert.doesNotMatch(contentSource, /"IF-MATCH": message\.etag \|\| "\*"/);
 let messageListener;
+let listenerRegistrations = 0;
 const requests = [];
 let failVerificationRead = false;
 let conflictOnWrite = false;
@@ -256,7 +260,7 @@ const bridgeContext = vm.createContext({
     pathname: "/personal/sharepoint_admin_tmagroup_com_au/Lists/TMA%20Freight%20Request%20Form/AllItems.aspx",
     href: "https://tmaaust-my.sharepoint.com/personal/sharepoint_admin_tmagroup_com_au/Lists/TMA%20Freight%20Request%20Form/AllItems.aspx"
   },
-  chrome: { runtime: { onMessage: { addListener: (listener) => { messageListener = listener; } } } },
+  chrome: { runtime: { id: "test-extension", onMessage: { addListener: (listener) => { messageListener = listener; listenerRegistrations += 1; } } } },
   fetch: async (url, options = {}) => {
     requests.push({ url, options });
     if (url.includes("/fields?")) return jsonResponse({ value: [
@@ -380,5 +384,15 @@ const conflictResponse = await sendBridgeMessage({
 });
 assert.equal(conflictResponse.ok, false);
 assert.match(conflictResponse.error, /changed in SharePoint/);
+
+assert.equal(listenerRegistrations, 1);
+vm.runInContext(contentSource, bridgeContext);
+assert.equal(listenerRegistrations, 1, "re-injecting while the bridge is alive must not add a second listener");
+bridgeContext.chrome.runtime.id = undefined;
+vm.runInContext(contentSource, bridgeContext);
+assert.equal(listenerRegistrations, 2, "re-injecting after the extension was reloaded must register a fresh listener");
+bridgeContext.chrome.runtime.id = "test-extension";
+const rebridgedPing = await sendBridgeMessage({ type: "TMA_PING" });
+assert.equal(rebridgedPing.ok, true, "the replacement bridge must answer messages");
 
 console.log("TMA Logistics Hub data tests passed");

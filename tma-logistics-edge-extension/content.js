@@ -1,6 +1,20 @@
 (() => {
-  if (globalThis.__TMA_LOGISTICS_SHAREPOINT_BRIDGE__) return;
-  globalThis.__TMA_LOGISTICS_SHAREPOINT_BRIDGE__ = true;
+  // A bridge left behind by an older, unloaded copy of the extension cannot
+  // answer messages any more, so only keep it when its runtime is still alive.
+  try {
+    if (globalThis.__TMA_LOGISTICS_SHAREPOINT_BRIDGE__?.alive?.() === true) return;
+  } catch {
+    // The previous bridge belongs to an unloaded extension; replace it.
+  }
+  globalThis.__TMA_LOGISTICS_SHAREPOINT_BRIDGE__ = {
+    alive: () => {
+      try {
+        return Boolean(chrome.runtime?.id);
+      } catch {
+        return false;
+      }
+    }
+  };
 
   const SITE_PATH = "/personal/sharepoint_admin_tmagroup_com_au";
   const LIST_TITLE = "TMA Freight Request Form";
